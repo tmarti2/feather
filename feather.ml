@@ -273,6 +273,8 @@ let rec eval cmd ctx =
 
 let process name args = Process (name, args)
 
+let of_list l = Of_list l
+
 let ( |. ) a b = Pipe (a, b)
 
 let and_ a b = And (a, b)
@@ -293,6 +295,10 @@ let append_stderr_to str cmd = Append_err_to (str, cmd)
 
 let read_stdin_from str cmd = Read_in_from (str, cmd)
 
+let stdout_to_stderr cmd = Out_to_err cmd
+
+let stderr_to_stdout cmd = Err_to_out cmd
+
 module Infix = struct
   let ( &&. ) = and_
 
@@ -310,10 +316,6 @@ module Infix = struct
 
   let ( < ) cmd str = read_stdin_from str cmd
 end
-
-let stdout_to_stderr cmd = Out_to_err cmd
-
-let stderr_to_stdout cmd = Err_to_out cmd
 
 (* === Collection facilities === *)
 
@@ -525,8 +527,6 @@ let tr from_ to_ = process "tr" [ from_; to_ ]
 let tr_d chars = process "tr" [ "-d"; chars ]
 
 (* === Misc === *)
-
-let of_list l = Of_list l
 
 let devnull = "/dev/null"
 
