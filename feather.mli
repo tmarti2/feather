@@ -1,41 +1,55 @@
-(** Feather
+(** Minimal shell library for Ocaml
 
     Feather is a minimal shell library for Ocaml with lightweight, posix-like
     syntax.
+
+    You can create a command using the function {{!process} process}, or any
+    {{!commands}basic commands}, and combined with {{!operators}operators} and/or
+    {{!redirection}file redirections}. Then, use any {{!exec}Execute commands} to
+    execute it, and {{!colsect} collect} status and/or stdout and/or stdree as
+    you like.
+
+    {[
+      open Feather
+      open Feather.Infix
+
+      let stdout, status =
+        echo "Hello world !" >! devnull |> collect stdout_and_status
+      in
+      Printf.printf "Echo returned %d and printed \"%s\" on stdout.\n" status stdout
+      (* This should print "Echo returned 0 and printed "Hello world !" on stdout." *)
+    ]}
 
 *)
 
 open Base
 
-type cmd
-(** {!type:cmd} is the main type used by feather to represent commands.
-    It can be constructed using the function {!process}, or any {!commands},
-    and combined with {!operators} and/or {!redirection}.
-*)
-
 (** {1 Command constructors} *)
 
-val process : string -> string list -> cmd
-(** [process s args] constructs a new command [s] from a string, with [args]
-    a list of options. *)
+type cmd
+(** {!type:cmd} is the main type used by feather to represent commands. *)
 
-val ( |. ) : cmd -> cmd -> cmd
-(** [ a |. b ] is feather's version of a [a | b] in bash. [a] will be run in
-    background and its [stdout] will be redirected to [b]'s [stdin] *)
+val process : string -> string list -> cmd
+(** [process cmd args] constructs a new command [cmd] from a string, with [args]
+    the list of options for this command. *)
 
 (** {2 Operators} *)
 
+val ( |. ) : cmd -> cmd -> cmd
+(** [a |. b] is feather's version of a [a | b] in bash. [a] will be run in
+    background and its [stdout] will be redirected to [b]'s [stdin] *)
+
 val and_ : cmd -> cmd -> cmd
-(** [ and_ ] is feather's version of a [&&] in bash. See {!module:Infix} module
-    for more. *)
+(** [and_] is feather's version of [&&] in bash. See {{!module:Infix}Infix}
+    module for more. *)
 
 val or_ : cmd -> cmd -> cmd
-(** [ or_ ] is feather's version of a [||] in bash. See {!module:Infix} module
-    for more. *)
+(** [or_] is feather's version of [||] in bash. See {{!module:Infix}Infix}
+    module for more. *)
 
 val sequence : cmd -> cmd -> cmd
-(** [ sequence ] is feather's version of a [;] in bash. See {!module:Infix}
-    module for more. *)
+(** [sequence] is feather's version of [;] in bash. See
+    {{!module:Infix}Infix} module for more. *)
 
 (** {2 Map functions} *)
 
@@ -57,21 +71,23 @@ val filter_mapi_lines : f:(string -> int -> string option) -> cmd
 (** {2:redirection Redirection functions} *)
 
 val write_stdout_to : string -> cmd -> cmd
-(** Redirect stdout to a given file. See {!module:Infix} module for more. *)
+(** Redirect stdout to a given file. See {{!module:Infix}Infix} module for
+    more. *)
 
 val append_stdout_to : string -> cmd -> cmd
-(** Redirect and append stdout to a given file. See {!module:Infix} module for
-    more. *)
+(** Redirect and append stdout to a given file. See {{!module:Infix}Infix}
+    module for more. *)
 
 val write_stderr_to : string -> cmd -> cmd
-(** Redirect stderr to a given file. See {!module:Infix} module for more. *)
-
-val append_stderr_to : string -> cmd -> cmd
-(** Redirect and append stderr to a given file. See {!module:Infix} module for
+(** Redirect stderr to a given file. See {{!module:Infix}Infix} module for
     more. *)
 
+val append_stderr_to : string -> cmd -> cmd
+(** Redirect and append stderr to a given file. See {{!module:Infix}Infix}
+    module for more. *)
+
 val read_stdin_from : string -> cmd -> cmd
-(** Use a file as input. See {!module:Infix} module for more. *)
+(** Use a file as input. See {{!module:Infix}Infix} module for more. *)
 
 val stdout_to_stderr : cmd -> cmd
 (** Redirect stdout to stderr, not composable with {!stderr_to_stdout}.
@@ -113,10 +129,10 @@ module Infix : sig
   (** Same as {!read_stdin_from} *)
 end
 
-(** {1 Collect Section} *)
+(** {1:colsect Collect Section} *)
 
 type 'a what_to_collect
-(** The type that determines what should be returned by {!collect} *)
+(** The type that determines what should be returned by {{!collect}collect} *)
 
 val stdout : string what_to_collect
 
@@ -134,19 +150,21 @@ type everything = { stdout : string; stderr : string; status : int }
 
 val everything : everything what_to_collect
 
-(** Various collection possibilities, to be used with {!collect} *)
+(** Various collection possibilities, to be used with {{!collect}collect} *)
+
+(** {1:exec Execute a command} *)
 
 val collect :
   ?cwd:string -> ?env:(string * string) list -> 'a what_to_collect -> cmd -> 'a
-(** [ collect col cmd ] runs [cmd], collecting the outputs specified by [col]
+(** [collect col cmd] runs [cmd], collecting the outputs specified by [col]
     along the way and returning them. The return type depends on what is
-    collected. *)
+    collected, see {{!colsect} Collect section} for more. *)
 
 val run : ?cwd:string -> ?env:(string * string) list -> cmd -> unit
-(** [ run cmd ] runs [cmd] without collecting anything. *)
+(** [run cmd] runs [cmd] without collecting anything. *)
 
 val run_bg : ?cwd:string -> ?env:(string * string) list -> cmd -> unit
-(** [ run_bg cmd ] runs [cmd] without collecting anything, in a thread.
+(** [run_bg cmd] runs [cmd] without collecting anything, in a thread.
     Use [wait] to ensure that the parent won't exit, subsequently killing the
     background process. *)
 
@@ -251,10 +269,10 @@ val devnull : string
 
 val fzf : ?cwd:string -> ?env:(string * string) list -> cmd -> string option
 (** [fzf] runs the command, and fuzzy finds the stdout.
-   Returns [None] if no item was chosen, [Some str] otherwise
+    Returns [None] if no item was chosen, [Some str] otherwise
 
-   Note that [fzf] is a way to to run a [cmd] and does not in itself return a
-   [cmd]. *)
+    Note that [fzf] is a way to to run a [cmd] and does not in itself return a
+    [cmd]. *)
 
 val debug : bool ref
 (** If true, each [command] will be printed to stdout along with current time *)
